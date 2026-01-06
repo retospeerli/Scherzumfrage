@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sitzplatzwechsel – Umfrage</title>
+  <style>
+    :root{
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background:#f3f4f6;
+      color:#111827;
+    }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .card{
+      width:min(640px, 100%);
+      background:#fff;
+      border-radius:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.12);
+      padding:22px 18px 18px;
+      text-align:center;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:1.55rem;
+      letter-spacing:.2px;
+    }
+    p{
+      margin:0 0 18px;
+      color:#374151;
+      font-size:1rem;
+      line-height:1.35;
+    }
+    .btnrow{
+      display:flex;
+      gap:14px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      margin:10px 0 6px;
+      position:relative;
+    }
+    button{
+      border:0;
+      border-radius:14px;
+      padding:14px 20px;
+      font-size:1.1rem;
+      font-weight:700;
+      cursor:pointer;
+      min-width:140px;
+      transition: transform .08s ease, filter .12s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    button:active{ transform: scale(0.98); }
+
+    .yes{
+      background:#22c55e;
+      color:#052e16;
+    }
+    .no{
+      background:#ef4444;
+      color:#450a0a;
+    }
+
+    .result{
+      margin-top:14px;
+      min-height:2.2em;
+      font-weight:700;
+      color:#111827;
+    }
+    .small{
+      margin-top:8px;
+      font-size:.9rem;
+      color:#6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Kurze Umfrage</h1>
+    <p>Hast du den Sitzplatz gewechselt?</p>
+
+    <div class="btnrow" id="row">
+      <button class="yes" id="yesBtn" type="button" aria-label="Ja">Ja</button>
+      <button class="no"  id="noBtn"  type="button" aria-label="Nein">Nein</button>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="small">Tipp: Versuch mal, auf „Ja“ zu drücken 😉</div>
+  </div>
+
+  <script>
+    const row = document.getElementById('row');
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn  = document.getElementById('noBtn');
+    const result = document.getElementById('result');
+
+    let swapped = false;
+    let lock = false;
+
+    function swapButtons(){
+      if (lock) return;
+      lock = true;
+
+      // Tauschen: Reihenfolge der Kinder im Flex-Container umdrehen
+      // (kleine Sperre, damit es nicht 100x pro Sekunde flippt)
+      if (!swapped) {
+        row.insertBefore(noBtn, yesBtn);
+      } else {
+        row.insertBefore(yesBtn, noBtn);
+      }
+      swapped = !swapped;
+
+      setTimeout(() => { lock = false; }, 120);
+    }
+
+    // Desktop + moderne Touchgeräte: Pointer Events
+    // Sobald man "Ja" anpeilt/berührt → tauschen
+    const triggers = ['pointerenter', 'pointerdown', 'mouseenter', 'touchstart'];
+
+    triggers.forEach(ev => {
+      yesBtn.addEventListener(ev, (e) => {
+        // Auf Touch: kein Scroll/Zoom durch diesen Tap
+        if (ev === 'touchstart') e.preventDefault();
+        swapButtons();
+      }, { passive: false });
+    });
+
+    // Klicks auswerten
+    yesBtn.addEventListener('click', () => {
+      result.textContent = '✅ Danke! Du hast „Ja“ gewählt.';
+    });
+
+    noBtn.addEventListener('click', () => {
+      result.textContent = '✅ Danke! Du hast „Nein“ gewählt.';
+    });
+
+    // Bonus: Wenn die Person mit der Maus direkt auf die Button-Reihe fährt,
+    // kann "Ja" auch mal flüchten, wenn es gerade links/rechts steht.
+    row.addEventListener('pointermove', (e) => {
+      // optionaler Gag: Wenn der Pointer sehr nahe am Ja ist, swap.
+      // (dezent, damit es nicht zu nervig wird)
+      const r = yesBtn.getBoundingClientRect();
+      const cx = e.clientX, cy = e.clientY;
+      const near = (cx > r.left-10 && cx < r.right+10 && cy > r.top-10 && cy < r.bottom+10);
+      if (near) swapButtons();
+    });
+  </script>
+</body>
+</html>
