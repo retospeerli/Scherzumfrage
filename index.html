@@ -19,24 +19,16 @@
       padding:16px;
     }
     .card{
-      width:min(640px, 100%);
+      width:min(720px, 100%);
       background:#fff;
       border-radius:18px;
       box-shadow:0 10px 30px rgba(0,0,0,.12);
       padding:22px 18px 18px;
       text-align:center;
     }
-    h1{
-      margin:0 0 8px;
-      font-size:1.55rem;
-      letter-spacing:.2px;
-    }
-    p{
-      margin:0 0 18px;
-      color:#374151;
-      font-size:1rem;
-      line-height:1.35;
-    }
+    h1{ margin:0 0 8px; font-size:1.55rem; letter-spacing:.2px; }
+    p{ margin:0 0 18px; color:#374151; font-size:1rem; line-height:1.35; }
+
     .btnrow{
       display:flex;
       gap:14px;
@@ -60,20 +52,13 @@
       touch-action: manipulation;
     }
     button:active{ transform: scale(0.98); }
-
-    .yes{
-      background:#22c55e;
-      color:#052e16;
-    }
-    .no{
-      background:#ef4444;
-      color:#450a0a;
-    }
+    .yes{ background:#22c55e; color:#052e16; }
+    .no { background:#ef4444; color:#450a0a; }
 
     .result{
       margin-top:14px;
       min-height:2.2em;
-      font-weight:700;
+      font-weight:800;
       color:#111827;
     }
     .small{
@@ -81,20 +66,137 @@
       font-size:.9rem;
       color:#6b7280;
     }
+
+    /* Fake-Auswertung */
+    .panel{
+      margin-top:18px;
+      text-align:left;
+      background:#f9fafb;
+      border:1px solid #e5e7eb;
+      border-radius:16px;
+      padding:14px;
+      display:none;
+    }
+    .panel h2{
+      margin:0 0 10px;
+      font-size:1.15rem;
+      text-align:center;
+    }
+    .meta{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-size:.95rem;
+      color:#374151;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .bars{
+      display:grid;
+      gap:10px;
+      margin-top:10px;
+    }
+    .barrow{
+      display:grid;
+      grid-template-columns: 70px 1fr 70px;
+      align-items:center;
+      gap:10px;
+    }
+    .label{
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+      font-size:.9rem;
+      text-align:right;
+    }
+    .value{
+      font-weight:800;
+      text-align:left;
+      font-variant-numeric: tabular-nums;
+    }
+    .track{
+      position:relative;
+      height:22px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#e5e7eb;
+    }
+    .fill{
+      height:100%;
+      width:0%;
+      transition: width 700ms ease;
+    }
+    .fill.yes{ background:#22c55e; }
+    .fill.no{  background:#ef4444; }
+
+    .caption{
+      margin-top:10px;
+      font-size:.9rem;
+      color:#6b7280;
+      text-align:center;
+    }
+
+    .restart{
+      margin-top:12px;
+      display:flex;
+      justify-content:center;
+    }
+    .ghost{
+      background:#111827;
+      color:#fff;
+      border-radius:12px;
+      padding:10px 14px;
+      font-size:1rem;
+      font-weight:800;
+      min-width:auto;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="card" id="card">
     <h1>Kurze Umfrage</h1>
-    <p>Möchtest du den Sitzplatz wechseln?</p>
+    <p id="question">Möchtest du den Sitzplatz wechseln?</p>
 
-    <div class="btnrow" id="row">
+    <div class="btnrow" id="row" aria-live="polite">
       <button class="yes" id="yesBtn" type="button" aria-label="Ja">Ja</button>
       <button class="no"  id="noBtn"  type="button" aria-label="Nein">Nein</button>
     </div>
 
     <div class="result" id="result"></div>
-    <div class="small">Tipp: Versuch mal, auf „Ja“ zu drücken 😉</div>
+    <div class="small" id="hint">Tipp: Versuch mal, auf „Ja“ zu drücken 😉</div>
+
+    <!-- Fake-Auswertung -->
+    <div class="panel" id="panel">
+      <h2>Auswertung (live)</h2>
+      <div class="meta">
+        <div><strong>Teilnahmen:</strong> <span id="votes">—</span></div>
+        <div><strong>Ergebnis:</strong> <span id="winner">—</span></div>
+      </div>
+
+      <div class="bars">
+        <div class="barrow">
+          <div class="label">JA</div>
+          <div class="track" aria-label="Ja-Balken">
+            <div class="fill yes" id="barYes"></div>
+          </div>
+          <div class="value" id="pctYes">0%</div>
+        </div>
+
+        <div class="barrow">
+          <div class="label">NEIN</div>
+          <div class="track" aria-label="Nein-Balken">
+            <div class="fill no" id="barNo"></div>
+          </div>
+          <div class="value" id="pctNo">0%</div>
+        </div>
+      </div>
+
+      <div class="caption">Hinweis: Ergebnisse werden automatisch aktualisiert. (total seriös)</div>
+
+      <div class="restart">
+        <button class="ghost" id="againBtn" type="button">Nochmal abstimmen</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -102,56 +204,115 @@
     const yesBtn = document.getElementById('yesBtn');
     const noBtn  = document.getElementById('noBtn');
     const result = document.getElementById('result');
+    const hint   = document.getElementById('hint');
+
+    const panel  = document.getElementById('panel');
+    const votesEl = document.getElementById('votes');
+    const winnerEl = document.getElementById('winner');
+    const barYes = document.getElementById('barYes');
+    const barNo  = document.getElementById('barNo');
+    const pctYesEl = document.getElementById('pctYes');
+    const pctNoEl  = document.getElementById('pctNo');
+    const againBtn = document.getElementById('againBtn');
 
     let swapped = false;
     let lock = false;
+    let answered = false;
 
     function swapButtons(){
-      if (lock) return;
+      if (lock || answered) return;
       lock = true;
 
-      // Tauschen: Reihenfolge der Kinder im Flex-Container umdrehen
-      // (kleine Sperre, damit es nicht 100x pro Sekunde flippt)
-      if (!swapped) {
-        row.insertBefore(noBtn, yesBtn);
-      } else {
-        row.insertBefore(yesBtn, noBtn);
-      }
-      swapped = !swapped;
+      if (!swapped) row.insertBefore(noBtn, yesBtn);
+      else row.insertBefore(yesBtn, noBtn);
 
+      swapped = !swapped;
       setTimeout(() => { lock = false; }, 120);
     }
 
-    // Desktop + moderne Touchgeräte: Pointer Events
-    // Sobald man "Ja" anpeilt/berührt → tauschen
+    // "Ja" flüchtet
     const triggers = ['pointerenter', 'pointerdown', 'mouseenter', 'touchstart'];
-
     triggers.forEach(ev => {
       yesBtn.addEventListener(ev, (e) => {
-        // Auf Touch: kein Scroll/Zoom durch diesen Tap
         if (ev === 'touchstart') e.preventDefault();
         swapButtons();
       }, { passive: false });
     });
 
-    // Klicks auswerten
-    yesBtn.addEventListener('click', () => {
-      result.textContent = '✅ Danke! Du hast „Ja“ gewählt.';
-    });
-
-    noBtn.addEventListener('click', () => {
-      result.textContent = '✅ Danke! Du hast „Nein“ gewählt.';
-    });
-
-    // Bonus: Wenn die Person mit der Maus direkt auf die Button-Reihe fährt,
-    // kann "Ja" auch mal flüchten, wenn es gerade links/rechts steht.
+    // Optional: in der Nähe flippen (Desktop)
     row.addEventListener('pointermove', (e) => {
-      // optionaler Gag: Wenn der Pointer sehr nahe am Ja ist, swap.
-      // (dezent, damit es nicht zu nervig wird)
+      if (answered) return;
       const r = yesBtn.getBoundingClientRect();
       const cx = e.clientX, cy = e.clientY;
       const near = (cx > r.left-10 && cx < r.right+10 && cy > r.top-10 && cy < r.bottom+10);
       if (near) swapButtons();
+    });
+
+    function randInt(min, max){
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function showFakeResults(){
+      // immer "knapp" NEIN 60 / JA 40
+      const noPct = randInt(58, 62);
+      const yesPct = 100 - noPct;
+
+      const totalVotes = randInt(23, 147); // wirkt "echt"
+      votesEl.textContent = totalVotes.toString();
+      winnerEl.textContent = `NEIN gewinnt knapp (${noPct}–${yesPct})`;
+
+      // Anzeige
+      pctYesEl.textContent = `${yesPct}%`;
+      pctNoEl.textContent  = `${noPct}%`;
+
+      // Balken animiert setzen (kurz delay, damit Transition sicher greift)
+      barYes.style.width = '0%';
+      barNo.style.width  = '0%';
+
+      setTimeout(() => {
+        barYes.style.width = `${yesPct}%`;
+        barNo.style.width  = `${noPct}%`;
+      }, 60);
+
+      panel.style.display = 'block';
+    }
+
+    function finish(answerText){
+      if (answered) return;
+      answered = true;
+
+      result.textContent = `✅ Danke! Du hast „${answerText}“ gewählt.`;
+      hint.textContent = 'Auswertung wird geladen…';
+
+      // Buttons "einfrieren"
+      yesBtn.disabled = true;
+      noBtn.disabled = true;
+
+      // kleine Verzögerung für Drama 😄
+      setTimeout(() => {
+        hint.textContent = 'Fertig.';
+        showFakeResults();
+      }, 500);
+    }
+
+    yesBtn.addEventListener('click', () => finish('Ja'));
+    noBtn.addEventListener('click', () => finish('Nein'));
+
+    againBtn.addEventListener('click', () => {
+      // Reset
+      answered = false;
+      result.textContent = '';
+      hint.textContent = 'Tipp: Versuch mal, auf „Ja“ zu drücken 😉';
+      panel.style.display = 'none';
+
+      yesBtn.disabled = false;
+      noBtn.disabled = false;
+
+      // Buttons wieder in Ausgangslage (Ja links, Nein rechts)
+      row.innerHTML = '';
+      row.appendChild(yesBtn);
+      row.appendChild(noBtn);
+      swapped = false;
     });
   </script>
 </body>
